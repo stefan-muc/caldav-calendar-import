@@ -25,8 +25,8 @@ Sabre\VObject (done with [Composer](https://getcomposer.org/))
 ``allow_url_fopen`` enabled (if WebDAV used)
 
 ## Tested Versions
-PHP 7.2.13
-Nextcloud 15.0.5
+* PHP 7.2.13
+* Nextcloud 15.0.5
 
 Should be compatible with other CalDAV and WebDAV servers
 
@@ -35,8 +35,11 @@ Should be compatible with other CalDAV and WebDAV servers
 * validity/error checks and reporting (e.g. don't delete events if ``*.ics`` file can't be found)
 * parallelizing the requests for performance (configurable number of workers)
 
-Contributions (code/pull requests) welcome
+Contributions (code/patches/pull requests) welcome
 
-## Source
-* https://gitlab.com/stefan-muc/caldav-calendar-import
-* https://github.com/stefan-muc/caldav-calendar-import
+## Source Mirrors
+Sources can be retrieved from these git repositories:
+* https://stefan.git.green-sparklet.de/caldav-calendar-import.git
+* https://codeberg.org/stefan-muc/caldav-calendar-import.git
+* https://gitlab.com/stefan-muc/caldav-calendar-import.git
+* https://github.com/stefan-muc/caldav-calendar-import.git
