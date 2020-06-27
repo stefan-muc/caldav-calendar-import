@@ -17,7 +17,11 @@ As every action is done with one HTTP(S) request, whole process is quite slow.
 The performance I achieve is roughly 2.6 events per second (delete and create)
 
 # Motivation
-[...] will be explained later
+I have an ``*.ics`` file which regularly gets updated with events. I want to have read access to these events through a Nextcloud calendar. Import using Nextcloud is possible, but only manually.
+
+Using ownCloud there was a community provided script using some (internal PHP) ownCloud API do do that. This API got removed somewhere in development, and so that automatic import didn't work anymore - but I really wanted to have it.
+
+So I thought a bit about that problem and finally decided, I would write my own script doing that - but this time using the public (and more stable) HTTP(S) API that ownCloud/Nextcloud provides: CalDAV and WebDAV. Positive side effect: there are already libraries out there that one can use.
 
 # Technical Stuff
 ## Dependencies
