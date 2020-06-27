@@ -21,8 +21,8 @@ The performance I achieve is roughly 2.6 events per second (delete and create)
 
 # Technical Stuff
 ## Dependencies
-Sabre\VObject (done with [Composer](https://getcomposer.org/))
-``allow_url_fopen`` enabled (if WebDAV used)
+* Sabre\VObject (done with [Composer](https://getcomposer.org/))
+* ``allow_url_fopen`` enabled (if WebDAV used)
 
 ## Tested Versions
 * PHP 7.2.13
