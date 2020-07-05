@@ -1,38 +1,50 @@
 <?php
-$debug = false;
 
-if($debug) $time_start = time();
+define('TIME_START', time());
 
 use Sabre\VObject;
-
+use Monolog\Handler\StreamHandler;
+use Monolog\Formatter\LineFormatter;
 include 'vendor/autoload.php';
+include 'include/logger.php';
+
+$log = new MyLogger('calendar_import');
+
+include 'config/config.inc.php';
+if(!defined('CONFIG_LOADED'))
+{
+    $formatter = new LineFormatter("%level_name%: %message%\n");
+    $streamHandler = new StreamHandler('php://stdout', Logger::WARNING);
+    $streamHandler->setFormatter($formatter);
+    $log->pushHandler($streamHandler);
+    $log->error('Could not find configuration. Please copy "config/config.sample.inc.php" to "config/config.inc.php" and fill out configuration to use this script.');
+    exit();
+}
 
 include_once('include/caldav-client-v2.php');
 
-if($debug) echo '<pre>' ."\n";
-if($debug) echo 'PHP version ' . phpversion() ."\n";
+if(PHP_SAPI != 'cli') echo '<pre>' ."\n"; // asuming a browser will show output
+$log->trace('PHP version ' . phpversion());
 
-$cal_user = 'CalDAV.Username';
-$cal_pass = 'secret_CalDAV_password';
-$cal_url = 'https://nextcloud.example.net/remote.php/dav/calendars/' . $cal_user . '/calendar_id/';
-$cdc = new CalDAVClient($cal_url, $cal_user, $cal_pass);
+$log->trace('Connecting to CalDAV Server ' . $config['CalDAV']['url']);
+$cdc = new CalDAVClient($config['CalDAV']['url'] , $config['CalDAV']['username'], $config['CalDAV']['password']);
 
-$ics_url = 'https://' . $cal_user . ':' . $cal_pass . '@' . 'nextcloud.example.net/remote.php/webdav/path/to/calendar.ics';
-
-
-//$cdc->SetDebug(true);
+$cdc->SetDebug($config['loglevel'] < MyLogger::DEBUG);
 $details = $cdc->GetCalendarDetails();
-if($debug) print_r($details);
+$log->debug('Calendar info - displayname: ' . $details->displayname);
+$log->debug('Calendar info - getctag: ' . $details->getctag);
 
 $cdc->SetDepth( $depth = '1');
 $events = $cdc->GetEvents();
 
+$log->debug('Found ' . count($events) . ' events in CalDAV calendar');
 // delete all events in this calendar
 foreach($events as $event) {
-	$cdc->DoDELETERequest($details->url . $event['href']);
+    $log->trace('Delete event ' . $details->url . $event['href']);
+    $cdc->DoDELETERequest($details->url . $event['href']);
 }
 
-//https://stackoverflow.com/questions/4356289/php-random-string-generator/31107425#31107425
+// https://stackoverflow.com/questions/4356289/php-random-string-generator/31107425#31107425
 /**
  * Generate a random string, using a cryptographically secure
  * pseudorandom number generator (random_int)
@@ -56,17 +68,29 @@ function random_str($length, $keyspace = '0123456789abcdefghijklmnopqrstuvwxyzAB
 }
 
 // read in ics file to calendar
-$vcalendar = VObject\Reader::read(fopen($ics_url, 'r'), VObject\Reader::OPTION_FORGIVING);
-
-// write calendar to server
-foreach($vcalendar->VEVENT as $curevent) {
-	$cdc->DoPUTRequest($details->url . 'import-' . random_str(21) . ".ics", "BEGIN:VCALENDAR\n" .  $curevent->serialize() . "END:VCALENDAR", '*');
+$log->trace('Reading ICS file from ' . $config['ICS']['url']);
+try
+{
+    $vcalendar = VObject\Reader::read(fopen($config['ICS']['url'], 'r'), VObject\Reader::OPTION_FORGIVING);
+}
+catch (Exception $e)
+{
+    $log->critical('Loading and parsing of ICS failed: ' . $e->getMessage());
+    $log->error('Exiting script now');
+    exit();
 }
 
-if($debug) echo "\n";
+$log->debug('Found ' . count($vcalendar->VEVENT) . ' events in ICS file');
 
-if($debug) echo "deleted " . count($events) . " events\n";
-if($debug) echo "created " . count($vcalendar->VEVENT) . " events\n";
-if($debug) echo "script ran " . (time() - $time_start) . " seconds\n";
-if($debug) echo '</pre>' ."\n";
+// write calendar to server
+foreach($vcalendar->VEVENT as $event) {
+    $log->trace('Adding event "' . $event->SUMMARY . '"');
+    $cdc->DoPUTRequest($details->url . 'import-' . random_str(21) . ".ics", "BEGIN:VCALENDAR\n" .  $event->serialize() . "END:VCALENDAR", '*');
+}
+
+$log->info("Deleted " . count($events) . " events");
+$log->info("Created " . count($vcalendar->VEVENT) . " events");
+$log->debug("Script ran " . (time() - TIME_START) . " seconds");
+if(PHP_SAPI != 'cli') echo '</pre>' ."\n";
+
 ?>
