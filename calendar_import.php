@@ -9,8 +9,8 @@ include 'vendor/autoload.php';
 
 include_once('vendor/caldav-client-v2.php');
 
-if($debug) echo '<pre>';
-if($debug) echo 'PHP version ' . phpversion();
+if($debug) echo '<pre>' ."\n";
+if($debug) echo 'PHP version ' . phpversion() ."\n";
 
 $cal_user = 'CalDAV.Username';
 $cal_pass = 'secret_CalDAV_password';
@@ -27,7 +27,7 @@ if($debug) print_r($details);
 $cdc->SetDepth( $depth = '1');
 $events = $cdc->GetEvents();
 
-if($debug) echo "\ndeleting now:\n";
+// delete all events in this calendar
 foreach($events as $event) {
 	$cdc->DoDELETERequest($details->url . $event['href']);
 }
@@ -65,7 +65,8 @@ foreach($vcalendar->VEVENT as $curevent) {
 
 if($debug) echo "\n";
 
-if($debug) echo "deleted " . count($events) . " events, ";
-if($debug) echo "created " . count($vcalendar->VEVENT) . " events, ";
-if($debug) echo "took " . (time() - $time_start) . " seconds";
+if($debug) echo "deleted " . count($events) . " events\n";
+if($debug) echo "created " . count($vcalendar->VEVENT) . " events\n";
+if($debug) echo "script ran " . (time() - $time_start) . " seconds\n";
+if($debug) echo '</pre>' ."\n";
 ?>
