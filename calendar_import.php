@@ -7,7 +7,7 @@ use Sabre\VObject;
 
 include 'vendor/autoload.php';
 
-include_once('vendor/caldav-client-v2.php');
+include_once('include/caldav-client-v2.php');
 
 if($debug) echo '<pre>' ."\n";
 if($debug) echo 'PHP version ' . phpversion() ."\n";
