@@ -50,10 +50,12 @@ $all_events = array();
 // read in all events and set for deletion
 foreach($events as $event)
 {
-    $hash = vevent_awl_hash($event);
+    $vevent = VObject\Reader::read($event['data'], VObject\Reader::OPTION_FORGIVING)->VEVENT;
+    $hash = vevent_hash($vevent);
 
     $all_events[$hash]['type'] = DELETE; // set as default - KEEP will be set later
     $all_events[$hash]['url'] = $details->url . $event['href'];
+    $all_events[$hash]['vevent'] = $vevent;
 }
 
 unset($events);
@@ -104,6 +106,7 @@ foreach($vcalendar->VEVENT as $event)
     if(isset($all_events[$hash]))
     {
         $all_events[$hash]['type'] = KEEP;
+        unset($all_events[$hash]['vevent']); // memory optimisation
     }
     else
     {
@@ -123,7 +126,7 @@ foreach($all_events as $event)
 {
     switch ($event['type']){
         case DELETE:
-            $log->trace('Delete event ' . $event['url']);
+            $log->trace('Delete event "' . $event['vevent']->SUMMARY . '"');
             $cdc->DoDELETERequest($event['url']);
             break;
         case CREATE:

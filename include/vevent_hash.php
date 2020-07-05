@@ -17,10 +17,4 @@
         );
     }
 
-    function vevent_awl_hash(array $event)
-    {
-        $vcalendar = VObject\Reader::read($event['data'], VObject\Reader::OPTION_FORGIVING);
-        return vevent_hash($vcalendar->VEVENT);
-    }
-
 ?>
