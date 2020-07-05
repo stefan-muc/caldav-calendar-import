@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 0.3.x
+
+### Version 0.3.0
+
+* add basic sync functionality to reduce number of delete+create actions that recreate the same event.
+
 ## Version 0.2.x
 
 ### Version 0.2.0

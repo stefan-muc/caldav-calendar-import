@@ -14,6 +14,10 @@ Import a ``*.ics`` file (provided with WebDAV) into a CalDAV server as calendar 
 **WARNING:** Script will delete content of provided calendar and replace it with events from provided ``*.ics`` file.
 First test it on your development server, before going to production!
 
+## Synchronisation
+
+Script supports basic synchronisation: If an event in ``*.ics`` file has the same summary (title), start date, end date, location and description as an event on CalDAV server, it is considered the same and thus not processed any further for performance reasons. Keep in mind and extend this to your needs (see ``include/vevent_hash.php`` for details).
+
 ## Performance
 
 Script is thought to be run as cronjob, so currently there are no optimizations regarding performance (everything is done sequentially, even though it could be parallelized).
