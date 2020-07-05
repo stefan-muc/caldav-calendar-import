@@ -7,6 +7,11 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
 include 'vendor/autoload.php';
 include 'include/logger.php';
+include 'include/vevent_hash.php';
+
+const DELETE = 0;
+const KEEP = 1;
+const CREATE = 2;
 
 $log = new MyLogger('calendar_import');
 
@@ -39,10 +44,19 @@ $events = $cdc->GetEvents();
 
 $log->debug('Found ' . count($events) . ' events in CalDAV calendar');
 // delete all events in this calendar
-foreach($events as $event) {
-    $log->trace('Delete event ' . $details->url . $event['href']);
-    $cdc->DoDELETERequest($details->url . $event['href']);
+
+$all_events = array();
+
+// read in all events and set for deletion
+foreach($events as $event)
+{
+    $hash = vevent_awl_hash($event);
+
+    $all_events[$hash]['type'] = DELETE; // set as default - KEEP will be set later
+    $all_events[$hash]['url'] = $details->url . $event['href'];
 }
+
+unset($events);
 
 // https://stackoverflow.com/questions/4356289/php-random-string-generator/31107425#31107425
 /**
@@ -82,14 +96,48 @@ catch (Exception $e)
 
 $log->debug('Found ' . count($vcalendar->VEVENT) . ' events in ICS file');
 
-// write calendar to server
-foreach($vcalendar->VEVENT as $event) {
-    $log->trace('Adding event "' . $event->SUMMARY . '"');
-    $cdc->DoPUTRequest($details->url . 'import-' . random_str(21) . ".ics", "BEGIN:VCALENDAR\n" .  $event->serialize() . "END:VCALENDAR", '*');
+// decide on which events to write to calendar
+foreach($vcalendar->VEVENT as $event)
+{
+    $hash = vevent_hash($event);
+
+    if(isset($all_events[$hash]))
+    {
+        $all_events[$hash]['type'] = KEEP;
+    }
+    else
+    {
+        $all_events[$hash]['type'] = CREATE;
+        $all_events[$hash]['vevent'] = $event;
+    }
 }
 
-$log->info("Deleted " . count($events) . " events");
-$log->info("Created " . count($vcalendar->VEVENT) . " events");
+unset($vcalendar);
+
+$stats[DELETE] = count(array_filter($all_events, function($v) { return $v['type'] == DELETE; }));
+$stats[KEEP]   = count(array_filter($all_events, function($v) { return $v['type'] == KEEP;   }));
+$stats[CREATE] = count(array_filter($all_events, function($v) { return $v['type'] == CREATE; }));
+
+// execute all changes on server
+foreach($all_events as $event)
+{
+    switch ($event['type']){
+        case DELETE:
+            $log->trace('Delete event ' . $event['url']);
+            $cdc->DoDELETERequest($event['url']);
+            break;
+        case CREATE:
+            $log->trace('Create event "' . $event['vevent']->SUMMARY . '"');
+            $cdc->DoPUTRequest($details->url . 'import-' . random_str(21) . ".ics", "BEGIN:VCALENDAR\n" .  $event['vevent']->serialize() . "END:VCALENDAR", '*');
+            break;
+    }
+}
+
+unset($all_events);
+
+$log->info("Deleted " .     $stats[DELETE] . " events");
+$log->info("Not touched " . $stats[KEEP]   . " events");
+$log->info("Created " .     $stats[CREATE] . " events");
 $log->debug("Script ran " . (time() - TIME_START) . " seconds");
 if(PHP_SAPI != 'cli') echo '</pre>' ."\n";
 
