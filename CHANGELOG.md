@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 0.2.x
+
+### Version 0.2.0
+
+* update dependencies (``sabre/vobject`` 4.3 is out)
+* add ``Monolog`` for logging
+* move configuration to ``config/config.inc.php`` and provide example
+
 ## Version 0.1.x
 
 ### Version 0.1.2

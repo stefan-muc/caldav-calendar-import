@@ -6,9 +6,10 @@ Import a ``*.ics`` file (provided with WebDAV) into a CalDAV server as calendar 
 
 * copy files to destination folder
 * run [Composer](https://getcomposer.org/)
-* adjust ``calendar_import.php`` lines 15 to 20 to fit your needs (examples are based on a Nextcloud server, having calendar to update and ``*.ics`` file in same account)
-* maybe set ``$debug = true;`` (line 2) so you get some statistics
-* call ``http://example.com/calendar_import.php`` and wait for response
+* in ``config`` directory
+  * rename ``config.sample.inc.php`` to ``config.inc.php`` and adjust according to your needs. Everything in ``$config`` is mandadtory (examples are based on a Nextcloud server, having calendar to update and ``*.ics`` file in same account)
+  * maybe set ``$config['loglevel']`` (line 40) to the level of your desire
+* call ``https://example.com/calendar_import.php`` and wait for response
 
 **WARNING:** Script will delete content of provided calendar and replace it with events from provided ``*.ics`` file.
 First test it on your development server, before going to production!
@@ -36,14 +37,13 @@ So I thought a bit about that problem and finally decided, I would write my own 
 
 ### Tested Versions
 
-* PHP 7.2.13
-* Nextcloud 15.0.5
+* PHP 7.2.13, 7.4.7
+* Nextcloud 15.0.4, 15.0.5, 15.0.14
 
 Should be compatible with other CalDAV and WebDAV servers
 
 ## Future Development
 
-* put configuration into separate file
 * validity/error checks and reporting (e.g. don't delete events if ``*.ics`` file can't be found)
 * parallelizing the requests for performance (configurable number of workers)
 
