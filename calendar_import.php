@@ -28,7 +28,7 @@ if(!defined('CONFIG_LOADED'))
 
 include_once('include/caldav-client-v2.php');
 
-if(PHP_SAPI != 'cli') echo '<pre>' ."\n"; // asuming a browser will show output
+if(PHP_SAPI != 'cli' and $config['autopre']) echo '<pre>' ."\n"; // asuming a browser will show output
 $log->trace('PHP version ' . phpversion());
 
 $log->trace('Connecting to CalDAV Server ' . $config['CalDAV']['url']);
@@ -142,6 +142,6 @@ $log->info("Deleted " .     $stats[DELETE] . " events");
 $log->info("Not touched " . $stats[KEEP]   . " events");
 $log->info("Created " .     $stats[CREATE] . " events");
 $log->debug("Script ran " . (time() - TIME_START) . " seconds");
-if(PHP_SAPI != 'cli') echo '</pre>' ."\n";
+if(PHP_SAPI != 'cli' and $config['autopre']) echo '</pre>' ."\n";
 
 ?>

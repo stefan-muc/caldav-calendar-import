@@ -33,13 +33,16 @@
     // Script uses Monolog (https://github.com/Seldaek/monolog#readme)
     use Monolog\Handler\StreamHandler;
     use Monolog\Formatter\LineFormatter;
-    
+
     // Format log output
     $output_format = "[%datetime%] %level_name%: %message%\n";
     $datetime_format = "Y-m-d H:i:s";
     // Set verbosity to one of TRACE, DEBUG, INFO, ERROR, CRITICAL, EMERGENCY
     $config['loglevel'] = MyLogger::INFO;
-    
+
+    // automatically add <pre> tags around output if script isn't called by commandline interface
+    $config['autopre'] = true;
+
     // Adjust to your needs. This example logs to output
     $formatter = new LineFormatter($output_format, $datetime_format);
     $streamHandler = new StreamHandler('php://output', $config['loglevel']);
