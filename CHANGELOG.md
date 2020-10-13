@@ -2,6 +2,10 @@
 
 ## Version 0.3.x
 
+### Version 0.3.2
+
+* probe CalDAV URL before accessing events - this is better error handling and makes the script more robust
+
 ### Version 0.3.1
 
 * make adding of <pre> tags optional via configuration as this might not be perfect for all use cases
