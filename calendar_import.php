@@ -31,9 +31,22 @@ include_once('include/caldav-client-v2.php');
 if(PHP_SAPI != 'cli' and $config['autopre']) echo '<pre>' ."\n"; // asuming a browser will show output
 $log->trace('PHP version ' . phpversion());
 
-$log->trace('Connecting to CalDAV Server ' . $config['CalDAV']['url']);
-$cdc = new CalDAVClient($config['CalDAV']['url'] , $config['CalDAV']['username'], $config['CalDAV']['password']);
+$cdc = new CalDAVClient($config['CalDAV']['url'], $config['CalDAV']['username'], $config['CalDAV']['password']);
 
+$log->trace('Probing CalDAV URL ' . $config['CalDAV']['url']);
+if (preg_match('/HTTP\/\d\.\d (\d{3})/', $cdc->DoRequest($config['CalDAV']['url']), $status))
+{
+    switch (intval($status[1])) {
+        case 401:
+            $log->error('Username and/or password you provided is wrong. Can\'t access CalDAV URL');
+            exit();
+        case 404:
+            $log->error('Calendar URL not found. Please make sure that your calendar URL is correct - did you use correct calendar ID?');
+            exit();
+    }
+}
+
+$log->trace('Connecting to CalDAV server and fetching info');
 $cdc->SetDebug($config['loglevel'] < MyLogger::DEBUG);
 $details = $cdc->GetCalendarDetails();
 $log->debug('Calendar info - displayname: ' . $details->displayname);
