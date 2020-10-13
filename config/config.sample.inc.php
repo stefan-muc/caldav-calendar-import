@@ -7,9 +7,10 @@
 
     // Convenience variables for configuration of Nextcloud destination
     $temp['Nextcloud']['domain'] = 'nextcloud.example.net';
+    // in your Nextcloud click the three dots next to your calendar and click 'Link' - the string between the last two slashes is your calendar ID
     $temp['Nextcloud']['calendar'] = 'calendar_id';
 
-    // this url is used as CalDAV destination URL - fill out Nextcloud variables above, or adjust to your URL
+    // this url is used as CalDAV destination URL - fill out Nextcloud variables above, or adjust to your URL (especially on hosted instances)
     $config['CalDAV']['url'] = 'https://' . $temp['Nextcloud']['domain'] . '/remote.php/dav/calendars/' . $config['CalDAV']['username'] . '/' . $temp['Nextcloud']['calendar'] . '/';
 
 
