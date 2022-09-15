@@ -2,6 +2,8 @@
 
 define('TIME_START', time());
 
+set_time_limit(600);
+
 use Sabre\VObject;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
@@ -47,7 +49,8 @@ if (preg_match('/HTTP\/\d\.\d (\d{3})/', $cdc->DoRequest($config['CalDAV']['url'
 }
 
 $log->trace('Connecting to CalDAV server and fetching info');
-$cdc->SetDebug($config['loglevel'] < MyLogger::DEBUG);
+//$cdc->SetDebug($config['loglevel'] < MyLogger::DEBUG);
+$cdc->SetDebug(true);
 $details = $cdc->GetCalendarDetails();
 $log->debug('Calendar info - displayname: ' . $details->displayname);
 $log->debug('Calendar info - getctag: ' . $details->getctag);
@@ -58,17 +61,20 @@ $events = $cdc->GetEvents();
 $log->debug('Found ' . count($events) . ' events in CalDAV calendar');
 // delete all events in this calendar
 
-$all_events = array();
+//$all_events = array();
 
 // read in all events and set for deletion
 foreach($events as $event)
 {
     $vevent = VObject\Reader::read($event['data'], VObject\Reader::OPTION_FORGIVING)->VEVENT;
-    $hash = vevent_hash($vevent);
+    $log->trace('Deleting event "' . $vevent->SUMMARY . '" @ ' . $vevent->DTSTART);
+    $cdc->DoDELETERequest($details->url . $event['href']);
 
-    $all_events[$hash]['type'] = DELETE; // set as default - KEEP will be set later
-    $all_events[$hash]['url'] = $details->url . $event['href'];
-    $all_events[$hash]['vevent'] = $vevent;
+    // $hash = vevent_hash($vevent);
+
+    // $all_events[$hash]['type'] = DELETE; // set as default - KEEP will be set later
+    // $all_events[$hash]['url'] = $details->url . $event['href'];
+    // $all_events[$hash]['vevent'] = $vevent;
 }
 
 unset($events);
@@ -111,49 +117,67 @@ catch (Exception $e)
 
 $log->debug('Found ' . count($vcalendar->VEVENT) . ' events in ICS file');
 
+$event_radius_secs = 90 * 24 * 60 * 60;
+$now_unix = time();
 // decide on which events to write to calendar
 foreach($vcalendar->VEVENT as $event)
 {
-    $hash = vevent_hash($event);
+    // $hash = vevent_hash($event);
 
-    if(isset($all_events[$hash]))
-    {
-        $all_events[$hash]['type'] = KEEP;
-        unset($all_events[$hash]['vevent']); // memory optimisation
+    // if(isset($all_events[$hash]))
+    // {
+    //     $log->debug('Keeping event: ' . $event->SUMMARY);
+    //     $all_events[$hash]['type'] = KEEP;
+    //     unset($all_events[$hash]['vevent']); // memory optimisation
+    // }
+    // else
+    // {
+    //     $all_events[$hash]['type'] = CREATE;
+    //     $all_events[$hash]['vevent'] = $event;
+    // }
+
+    // Check that event starts within 3 month radius
+    $dt = new DateTime($event->DTSTART);
+    $start_unix = (int)$dt->format('U');
+    $diff = abs($start_unix - $now_unix);
+    if ($diff > $event_radius_secs){
+        continue;
     }
-    else
-    {
-        $all_events[$hash]['type'] = CREATE;
-        $all_events[$hash]['vevent'] = $event;
-    }
+
+    // Remove alarm
+    unset($event->VALARM);
+
+    $log->trace('Creating event "' . $event->SUMMARY . '" @ '. $event->DTSTART);
+    $cdc->DoPUTRequest($details->url . 'import-' . random_str(21) . ".ics", "BEGIN:VCALENDAR\n" .  $event->serialize() . "END:VCALENDAR", '*');
+            
 }
 
 unset($vcalendar);
 
-$stats[DELETE] = count(array_filter($all_events, function($v) { return $v['type'] == DELETE; }));
-$stats[KEEP]   = count(array_filter($all_events, function($v) { return $v['type'] == KEEP;   }));
-$stats[CREATE] = count(array_filter($all_events, function($v) { return $v['type'] == CREATE; }));
+// $stats[DELETE] = count(array_filter($all_events, function($v) { return $v['type'] == DELETE; }));
+// $stats[KEEP]   = count(array_filter($all_events, function($v) { return $v['type'] == KEEP;   }));
+// $stats[CREATE] = count(array_filter($all_events, function($v) { return $v['type'] == CREATE; }));
 
 // execute all changes on server
-foreach($all_events as $event)
-{
-    switch ($event['type']){
-        case DELETE:
-            $log->trace('Delete event "' . $event['vevent']->SUMMARY . '"');
-            $cdc->DoDELETERequest($event['url']);
-            break;
-        case CREATE:
-            $log->trace('Create event "' . $event['vevent']->SUMMARY . '"');
-            $cdc->DoPUTRequest($details->url . 'import-' . random_str(21) . ".ics", "BEGIN:VCALENDAR\n" .  $event['vevent']->serialize() . "END:VCALENDAR", '*');
-            break;
-    }
-}
+// foreach($all_events as $event)
+// {
+//     switch ($event['type']){
+//         case DELETE:
+//             $log->trace('Delete event "' . $event['vevent']->SUMMARY . '"');
+//             $cdc->DoDELETERequest($event['url']);
+//             break;
+//         case CREATE:
+//             $log->trace('Create event "' . $event['vevent']->SUMMARY . '"');
+//             $cdc->DoPUTRequest($details->url . 'import-' . random_str(21) . ".ics", "BEGIN:VCALENDAR\n" .  $event['vevent']->serialize() . "END:VCALENDAR", '*');
+//             break;
+//     }
+// }
 
-unset($all_events);
+//unset($all_events);
 
-$log->info("Deleted " .     $stats[DELETE] . " events");
-$log->info("Not touched " . $stats[KEEP]   . " events");
-$log->info("Created " .     $stats[CREATE] . " events");
+// $log->info("Deleted " .     $stats[DELETE] . " events");
+// $log->info("Not touched " . $stats[KEEP]   . " events");
+// $log->info("Created " .     $stats[CREATE] . " events");
 $log->debug("Script ran " . (time() - TIME_START) . " seconds");
 if(PHP_SAPI != 'cli' and $config['autopre']) echo '</pre>' ."\n";
 
